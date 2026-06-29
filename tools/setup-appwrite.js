@@ -16,7 +16,7 @@ const storage  = new Storage(client);
 const DB_ID = 'electoral_db';
 
 const COL = {
-  perfiles:        'perfiles',
+  perfiles:        'users',
   recintos:        'recintos',
   mesas:           'mesas',
   asignaciones:    'asignaciones',
@@ -65,8 +65,8 @@ async function main() {
     console.log(`   ✔ team ${t.id} creado`);
   }
 
-  // COLECCIÓN: PERFILES
-  console.log('📄 Colección: perfiles');
+  // COLECCIÓN: USERS (perfiles)
+  console.log('📄 Colección: users (perfiles)');
   if (!(await existsCollection(COL.perfiles))) {
     await db.createCollection(
       DB_ID, COL.perfiles, 'Perfiles de Usuario',
@@ -80,15 +80,14 @@ async function main() {
       ],
     );
     await sleep(500);
-    await db.createAttribute(DB_ID, COL.perfiles, 'userId',       255, true,  AttributeType.String);
     await db.createAttribute(DB_ID, COL.perfiles, 'cedula',       10,  true,  AttributeType.String);
     await db.createAttribute(DB_ID, COL.perfiles, 'nombres',      255, true,  AttributeType.String);
     await db.createAttribute(DB_ID, COL.perfiles, 'apellidos',    255, true,  AttributeType.String);
-    await db.createAttribute(DB_ID, COL.perfiles, 'telefono',     10,  true,  AttributeType.String);
-    await db.createAttribute(DB_ID, COL.perfiles, 'email',        255, true,  AttributeType.Email);
-    await db.createAttribute(DB_ID, COL.perfiles, 'rol',          20,  true,  AttributeType.String); 
+    await db.createAttribute(DB_ID, COL.perfiles, 'telefono',     20,  true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.perfiles, 'correo',       255, true,  AttributeType.Email);
+    await db.createAttribute(DB_ID, COL.perfiles, 'rol',          20,  true,  AttributeType.String);
     await db.createAttribute(DB_ID, COL.perfiles, 'recintoId',    255, false, AttributeType.String, undefined, true);
-    await db.createAttribute(DB_ID, COL.perfiles, 'primerLogin',  1,   true,  AttributeType.Boolean);
+    await db.createAttribute(DB_ID, COL.perfiles, 'requiresPasswordChange', 1, true, AttributeType.Boolean);
   }
 
   // COLECCIÓN: RECINTOS
@@ -107,9 +106,8 @@ async function main() {
     await db.createAttribute(DB_ID, COL.recintos, 'canton',     100, true, AttributeType.String);
     await db.createAttribute(DB_ID, COL.recintos, 'parroquia',  100, true, AttributeType.String);
     await db.createAttribute(DB_ID, COL.recintos, 'nombre',     255, true, AttributeType.String);
-    await db.createAttribute(DB_ID, COL.recintos, 'provincia',  100, true, AttributeType.String);
-    await db.createAttribute(DB_ID, COL.recintos, 'totalJrvs',  1,   true, AttributeType.Integer);
-    await db.createAttribute(DB_ID, COL.recintos, 'createdBy',  255, true, AttributeType.String);
+    await db.createAttribute(DB_ID, COL.recintos, 'cantidadMesas', 1, true, AttributeType.Integer);
+    await db.createAttribute(DB_ID, COL.recintos, 'coordinadorId', 255, false, AttributeType.String);
   }
 
   // COLECCIÓN: MESAS
@@ -127,8 +125,53 @@ async function main() {
     );
     await sleep(500);
     await db.createAttribute(DB_ID, COL.mesas, 'recintoId',  255, true,  AttributeType.String);
-    await db.createAttribute(DB_ID, COL.mesas, 'numeroJr',   10,  true,  AttributeType.String);
-    await db.createAttribute(DB_ID, COL.mesas, 'estado',     20,  true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.mesas, 'numeroMesa', 10,  true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.mesas, 'veedorId',   255, false, AttributeType.String);
+  }
+
+  // COLECCIÓN: ASIGNACIONES (un veedor -> N mesas)
+  console.log('📄 Colección: asignaciones');
+  if (!(await existsCollection(COL.asignaciones))) {
+    await db.createCollection(
+      DB_ID, COL.asignaciones, 'Asignaciones Veedor-Mesa',
+      [
+        Permission.create(Role.team(TEAM.coordinadoresRecinto)),
+        Permission.create(Role.team(TEAM.provinciales)),
+        Permission.read(Role.users()),
+        Permission.update(Role.team(TEAM.coordinadoresRecinto)),
+        Permission.delete(Role.team(TEAM.coordinadoresRecinto)),
+      ],
+    );
+    await sleep(500);
+    await db.createAttribute(DB_ID, COL.asignaciones, 'veedorId',         255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.asignaciones, 'mesaId',           255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.asignaciones, 'recintoId',        255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.asignaciones, 'fechaAsignacion',  30,  true,  AttributeType.DateTime);
+    await db.createAttribute(DB_ID, COL.asignaciones, 'activa',           1,   true,  AttributeType.Boolean);
+    await db.createAttribute(DB_ID, COL.asignaciones, 'asignadoPor',      255, false, AttributeType.String);
+  }
+
+  // COLECCIÓN: ORGANIZACIONES POLÍTICAS
+  console.log('📄 Colección: organizaciones');
+  if (!(await existsCollection(COL.organizaciones))) {
+    await db.createCollection(
+      DB_ID, COL.organizaciones, 'Organizaciones Políticas',
+      [
+        Permission.create(Role.team(TEAM.provinciales)),
+        Permission.read(Role.users()),
+        Permission.update(Role.team(TEAM.provinciales)),
+        Permission.delete(Role.team(TEAM.provinciales)),
+      ],
+    );
+    await sleep(500);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'nombre',             255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'siglas',             20,  true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'candidatoNombres',   255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'candidatoApellidos', 255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'dignidad',           20,  true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'numeroLista',        1,   true,  AttributeType.Integer);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'colorHex',           10,  false, AttributeType.String);
+    await db.createAttribute(DB_ID, COL.organizaciones, 'logoUrl',            500, false, AttributeType.String);
   }
 
   // COLECCIÓN: ACTAS
@@ -138,14 +181,15 @@ async function main() {
       DB_ID, COL.actas, 'Actas de Escrutinio',
       [
         Permission.create(Role.team(TEAM.veedores)),
-        Permission.read(Role.users()),   
+        Permission.read(Role.users()),
         Permission.update(Role.team(TEAM.coordinadoresRecinto)),
         Permission.update(Role.team(TEAM.veedores)),
       ],
     );
     await sleep(500);
     await db.createAttribute(DB_ID, COL.actas, 'mesaId',            255, true,  AttributeType.String);
-    await db.createAttribute(DB_ID, COL.actas, 'tipoActa',          20,  true,  AttributeType.String); 
+    await db.createAttribute(DB_ID, COL.actas, 'recintoId',         255, true,  AttributeType.String);
+    await db.createAttribute(DB_ID, COL.actas, 'tipoActa',          20,  true,  AttributeType.String);
     await db.createAttribute(DB_ID, COL.actas, 'votosCandidato1',   1,   true,  AttributeType.Integer);
     await db.createAttribute(DB_ID, COL.actas, 'votosCandidato2',   1,   true,  AttributeType.Integer);
     await db.createAttribute(DB_ID, COL.actas, 'votosCandidato3',   1,   true,  AttributeType.Integer);
@@ -173,12 +217,13 @@ async function main() {
         Permission.update(Role.team(TEAM.coordinadoresRecinto)),
         Permission.delete(Role.team(TEAM.coordinadoresRecinto)),
       ],
-      false,                  
-      undefined, undefined,   
+      false,
+      undefined, undefined,
     );
   }
 
   console.log('\n✅ Configuración de Appwrite completada.');
+  console.log('\n📋 RECUERDA poblar la colección "organizaciones" con 5 candidatos para Alcalde y 5 para Prefecto.');
 }
 
 main().catch((e) => { console.error('❌ Error:', e); process.exit(1); });

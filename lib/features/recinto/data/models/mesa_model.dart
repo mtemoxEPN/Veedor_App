@@ -11,7 +11,7 @@ class MesaModel extends MesaEntity {
   factory MesaModel.fromJson(Map<String, dynamic> json) {
     return MesaModel(
       id: json['\$id'] ?? '',
-      numeroMesa: json['numeroMesa'] ?? '',
+      numeroMesa: json['numeroMesa'] ?? json['numeroJr'] ?? '',
       recintoId: json['recintoId'] ?? '',
       veedorId: json['veedorId'],
     );

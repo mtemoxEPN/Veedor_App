@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/acta_entity.dart';
+import '../../domain/entities/acta_pendiente_entity.dart';
 import '../../../recinto/domain/entities/mesa_entity.dart';
 
 abstract class VeedorState extends Equatable {
@@ -57,3 +58,39 @@ class VeedorMesasListLoaded extends VeedorState {
   @override
   List<Object?> get props => [mesas];
 }
+
+class VeedorActaSavedOffline extends VeedorState {
+  final ActaPendienteEntity acta;
+
+  const VeedorActaSavedOffline(this.acta);
+
+  @override
+  List<Object?> get props => [acta];
+}
+
+class VeedorPendingActasLoaded extends VeedorState {
+  final List<ActaPendienteEntity> actas;
+
+  const VeedorPendingActasLoaded(this.actas);
+
+  @override
+  List<Object?> get props => [actas];
+}
+
+class VeedorSyncResult extends VeedorState {
+  final int synced;
+  final int failed;
+  final int totalPending;
+  final List<String> errors;
+
+  const VeedorSyncResult({
+    required this.synced,
+    required this.failed,
+    required this.totalPending,
+    required this.errors,
+  });
+
+  @override
+  List<Object?> get props => [synced, failed, totalPending, errors];
+}
+

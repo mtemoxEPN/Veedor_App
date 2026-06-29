@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/acta_pendiente_entity.dart';
 
 abstract class VeedorEvent extends Equatable {
   const VeedorEvent();
@@ -89,3 +90,17 @@ class SubmitActaEvent extends VeedorEvent {
         longitud,
       ];
 }
+
+class SaveActaOfflineEvent extends VeedorEvent {
+  final ActaPendienteEntity acta;
+
+  const SaveActaOfflineEvent(this.acta);
+
+  @override
+  List<Object?> get props => [acta];
+}
+
+class SyncPendingActasEvent extends VeedorEvent {}
+
+class LoadPendingActasEvent extends VeedorEvent {}
+

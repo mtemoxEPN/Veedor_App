@@ -1,7 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../data/services/sync_service.dart';
 import '../../domain/usecases/get_acta_mesa_usecase.dart';
 import '../../domain/usecases/get_actas_by_mesa_usecase.dart';
 import '../../domain/usecases/get_mesas_by_veedor_usecase.dart';
+import '../../domain/usecases/get_pending_actas_usecase.dart';
+import '../../domain/usecases/save_acta_offline_usecase.dart';
 import '../../domain/usecases/submit_acta_usecase.dart';
 import 'veedor_event.dart';
 import 'veedor_state.dart';
@@ -11,17 +14,26 @@ class VeedorBloc extends Bloc<VeedorEvent, VeedorState> {
   final GetActasByMesaUseCase getActasByMesaUseCase;
   final GetMesasByVeedorUseCase getMesasByVeedorUseCase;
   final SubmitActaUseCase submitActaUseCase;
+  final SaveActaOfflineUseCase saveActaOfflineUseCase;
+  final GetPendingActasUseCase getPendingActasUseCase;
+  final SyncService syncService;
 
   VeedorBloc({
     required this.getActaMesaUseCase,
     required this.getActasByMesaUseCase,
     required this.getMesasByVeedorUseCase,
     required this.submitActaUseCase,
+    required this.saveActaOfflineUseCase,
+    required this.getPendingActasUseCase,
+    required this.syncService,
   }) : super(VeedorInitial()) {
     on<CheckActaStatusEvent>(_onCheckActaStatus);
     on<LoadActasByMesaEvent>(_onLoadActasByMesa);
     on<LoadMesasByVeedorEvent>(_onLoadMesasByVeedor);
     on<SubmitActaEvent>(_onSubmitActa);
+    on<SaveActaOfflineEvent>(_onSaveActaOffline);
+    on<LoadPendingActasEvent>(_onLoadPendingActas);
+    on<SyncPendingActasEvent>(_onSyncPendingActas);
   }
 
   Future<void> _onCheckActaStatus(CheckActaStatusEvent event, Emitter<VeedorState> emit) async {
@@ -75,4 +87,44 @@ class VeedorBloc extends Bloc<VeedorEvent, VeedorState> {
       (acta) => emit(VeedorActaSubmittedSuccess(acta)),
     );
   }
+
+  Future<void> _onSaveActaOffline(SaveActaOfflineEvent event, Emitter<VeedorState> emit) async {
+    emit(VeedorLoading());
+    final result = await saveActaOfflineUseCase(event.acta);
+    await result.fold(
+      (failure) async => emit(VeedorError(failure.message)),
+      (acta) async {
+        emit(VeedorActaSavedOffline(acta));
+        // Intentar sincronizar inmediatamente si hay conexión
+        unawaited(syncService.syncNow());
+      },
+    );
+  }
+
+  Future<void> _onLoadPendingActas(LoadPendingActasEvent event, Emitter<VeedorState> emit) async {
+    emit(VeedorLoading());
+    final result = await getPendingActasUseCase();
+    result.fold(
+      (failure) => emit(VeedorError(failure.message)),
+      (actas) => emit(VeedorPendingActasLoaded(actas)),
+    );
+  }
+
+  Future<void> _onSyncPendingActas(SyncPendingActasEvent event, Emitter<VeedorState> emit) async {
+    emit(VeedorLoading());
+    final report = await syncService.syncNow();
+    emit(VeedorSyncResult(
+      synced: report.syncedCount,
+      failed: report.failedCount,
+      totalPending: report.totalPending,
+      errors: report.errors,
+    ));
+  }
 }
+
+void unawaited(Future<dynamic> future) {
+  future.catchError((Object e) {
+    // Silenciar errores en sync background
+  });
+}
+

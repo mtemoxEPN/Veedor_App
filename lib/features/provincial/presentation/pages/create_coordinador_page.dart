@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/cedula_validator.dart';
 import '../bloc/provincial_bloc.dart';
 import '../bloc/provincial_event.dart';
 import '../bloc/provincial_state.dart';
@@ -21,6 +23,7 @@ class _CreateCoordinadorPageState extends State<CreateCoordinadorPage> {
   final _apellidosController = TextEditingController();
   final _telefonoController = TextEditingController();
   final _correoController = TextEditingController();
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -39,69 +42,115 @@ class _CreateCoordinadorPageState extends State<CreateCoordinadorPage> {
       body: BlocListener<ProvincialBloc, ProvincialState>(
         listener: (context, state) {
           if (state is ProvincialError) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.red));
+            setState(() => _submitting = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: AppTheme.danger),
+            );
           } else if (state is ProvincialActionSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(state.message), backgroundColor: Colors.green));
-            Navigator.of(context).pop(); // Volver al panel provincial
+            setState(() => _submitting = false);
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.message), backgroundColor: AppTheme.success),
+            );
+            Navigator.of(context).pop();
           }
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
-            child: ListView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Se creará la cuenta del coordinador y se le asignará la clave "Ecuador2026" por defecto.'),
-                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info_outline, size: 18, color: AppTheme.primary),
+                          SizedBox(width: 8),
+                          Text('Información', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+                        ],
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Se creará la cuenta con la clave "Ecuador2026" y se enviará un correo de confirmación.',
+                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
                 TextFormField(
                   controller: _cedulaController,
-                  decoration: const InputDecoration(labelText: 'Cédula (10 dígitos)', border: OutlineInputBorder()),
+                  decoration: AppTheme.inputDecoration(label: 'Cédula (10 dígitos)', prefixIcon: Icons.badge_outlined),
                   keyboardType: TextInputType.number,
                   maxLength: 10,
-                  validator: (v) => v!.length != 10 ? 'Cédula inválida' : null,
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Requerido';
+                    if (!CedulaValidator.isValid(v)) return CedulaValidator.formatMessage();
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _nombresController,
-                  decoration: const InputDecoration(labelText: 'Nombres', border: OutlineInputBorder()),
+                  decoration: AppTheme.inputDecoration(label: 'Nombres', prefixIcon: Icons.person_outline),
                   validator: (v) => v!.isEmpty ? 'Requerido' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _apellidosController,
-                  decoration: const InputDecoration(labelText: 'Apellidos', border: OutlineInputBorder()),
+                  decoration: AppTheme.inputDecoration(label: 'Apellidos', prefixIcon: Icons.person_outline),
                   validator: (v) => v!.isEmpty ? 'Requerido' : null,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _telefonoController,
-                  decoration: const InputDecoration(labelText: 'Teléfono', border: OutlineInputBorder()),
+                  decoration: AppTheme.inputDecoration(label: 'Teléfono', prefixIcon: Icons.phone_outlined),
                   keyboardType: TextInputType.phone,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: _correoController,
-                  decoration: const InputDecoration(labelText: 'Correo', border: OutlineInputBorder()),
+                  decoration: AppTheme.inputDecoration(label: 'Correo Electrónico', prefixIcon: Icons.email_outlined),
                   keyboardType: TextInputType.emailAddress,
-                ),
-                const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      context.read<ProvincialBloc>().add(
-                        CreateCoordinadorRecintoEvent(
-                          cedula: _cedulaController.text,
-                          nombres: _nombresController.text,
-                          apellidos: _apellidosController.text,
-                          telefono: _telefonoController.text,
-                          correo: _correoController.text,
-                          recintoId: widget.recintoId,
-                        ),
-                      );
-                    }
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Requerido';
+                    final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+                    if (!emailRegex.hasMatch(v)) return 'Correo inválido';
+                    return null;
                   },
-                  child: const Text('Crear y Asignar Coordinador'),
-                )
+                ),
+                const SizedBox(height: 32),
+                ElevatedButton(
+                  onPressed: _submitting
+                      ? null
+                      : () {
+                          if (_formKey.currentState!.validate()) {
+                            setState(() => _submitting = true);
+                            context.read<ProvincialBloc>().add(
+                              CreateCoordinadorRecintoEvent(
+                                cedula: _cedulaController.text,
+                                nombres: _nombresController.text,
+                                apellidos: _apellidosController.text,
+                                telefono: _telefonoController.text,
+                                correo: _correoController.text,
+                                recintoId: widget.recintoId,
+                              ),
+                            );
+                          }
+                        },
+                  child: _submitting
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Crear y Asignar Coordinador'),
+                ),
               ],
             ),
           ),

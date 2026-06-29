@@ -1,6 +1,7 @@
 import '../../../../core/error/failures.dart';
 import '../../../../core/utils/either.dart';
 import '../entities/acta_entity.dart';
+import '../entities/acta_pendiente_entity.dart';
 import '../../../recinto/domain/entities/mesa_entity.dart';
 
 abstract class VeedorRepository {
@@ -25,4 +26,13 @@ abstract class VeedorRepository {
     required double latitud,
     required double longitud,
   });
+
+  /// Guarda un acta localmente para sincronización diferida
+  Future<Either<Failure, ActaPendienteEntity>> saveActaOffline(ActaPendienteEntity acta);
+
+  /// Obtiene el acta pendiente para una mesa/tipo
+  Future<Either<Failure, ActaPendienteEntity?>> getActaOffline(String mesaId, String tipoActa);
+
+  /// Devuelve todas las actas pendientes de sincronización
+  Future<Either<Failure, List<ActaPendienteEntity>>> getAllPendingActas();
 }

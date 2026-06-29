@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:appwrite/appwrite.dart';
 import '../../../../core/config/appwrite_config.dart';
 import '../../../../core/config/constants.dart';
@@ -75,19 +77,52 @@ class AppwriteProvincialDataSource implements ProvincialRemoteDataSource {
     required String recintoId,
   }) async {
     try {
-      // 1. Crear el Auth de Appwrite (usando correo real pero ID=cédula)
-      final authResponse = await appwriteConfig.account.create(
-        userId: ID.custom(cedula),
-        email: correo,
-        password: 'Ecuador2026',
-        name: '\$nombres \$apellidos',
-      );
+      // 1. Crear el Auth de Appwrite (usando API Server para evitar 401 Unauthorized)
+      String authId = '';
+      try {
+        final response = await http.post(
+          Uri.parse('${AppwriteConfig.endpoint}/users'),
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Appwrite-Project': AppConstants.projectId,
+            'X-Appwrite-Key': AppConstants.apiKey,
+          },
+          body: jsonEncode({
+            'userId': cedula,
+            'email': correo,
+            'password': 'Ecuador2026',
+            'name': '$nombres $apellidos',
+          }),
+        );
+        
+        if (response.statusCode == 201 || response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          authId = data['\$id'];
+
+          // Enviar correo de verificación (a través del mini-backend) - Sin await para no bloquear la UI si Render está dormido
+          http.post(
+            Uri.parse('${AppConstants.backendUrl}/api/auth/send-verification'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': correo, 'userId': authId}),
+          ).timeout(const Duration(seconds: 30)).catchError((e) {
+            print('Error al enviar correo de verificación: $e');
+            return http.Response('', 500);
+          });
+        } else if (response.statusCode == 409) {
+          // El usuario ya existe en Auth, usamos la cédula como ID
+          authId = cedula;
+        } else {
+          throw Exception('Error del servidor Appwrite: ${response.body}');
+        }
+      } catch (e) {
+        throw Exception('Error de conexión al crear usuario: $e');
+      }
 
       // 2. Crear el documento en la colección Users
       await appwriteConfig.databases.createDocument(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.usersCollectionId,
-        documentId: authResponse.$id,
+        documentId: authId,
         data: {
           'cedula': cedula,
           'nombres': nombres,
@@ -106,7 +141,7 @@ class AppwriteProvincialDataSource implements ProvincialRemoteDataSource {
         collectionId: AppConstants.recintosCollectionId,
         documentId: recintoId,
         data: {
-          'coordinadorId': authResponse.$id,
+          'coordinadorId': authId,
         },
       );
     } on AppwriteException catch (e) {

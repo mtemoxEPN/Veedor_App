@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/recinto_entity.dart';
+import '../../domain/entities/organizacion_entity.dart';
+import '../../domain/entities/votos_consolidados_entity.dart';
 
 abstract class ProvincialState extends Equatable {
   const ProvincialState();
@@ -37,4 +39,24 @@ class ProvincialError extends ProvincialState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class ProvincialOrganizacionesLoaded extends ProvincialState {
+  final List<OrganizacionEntity> organizaciones;
+
+  const ProvincialOrganizacionesLoaded(this.organizaciones);
+
+  @override
+  List<Object?> get props => [organizaciones];
+}
+
+class ProvincialVotosConsolidadosLoaded extends ProvincialState {
+  final List<VotosConsolidadosEntity> votos;
+  final String dignidad;
+  final String? recintoId;
+
+  const ProvincialVotosConsolidadosLoaded(this.votos, this.dignidad, this.recintoId);
+
+  @override
+  List<Object?> get props => [votos, dignidad, recintoId];
 }

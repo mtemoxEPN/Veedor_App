@@ -46,3 +46,22 @@ class CreateCoordinadorRecintoEvent extends ProvincialEvent {
   @override
   List<Object?> get props => [cedula, nombres, apellidos, telefono, correo, recintoId];
 }
+
+class LoadOrganizacionesEvent extends ProvincialEvent {
+  final String dignidad;
+
+  const LoadOrganizacionesEvent(this.dignidad);
+
+  @override
+  List<Object?> get props => [dignidad];
+}
+
+class LoadVotosConsolidadosEvent extends ProvincialEvent {
+  final String dignidad;
+  final String? recintoId;
+
+  const LoadVotosConsolidadosEvent({required this.dignidad, this.recintoId});
+
+  @override
+  List<Object?> get props => [dignidad, recintoId];
+}

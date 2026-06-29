@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:appwrite/appwrite.dart';
 import '../../../../core/config/appwrite_config.dart';
 import '../../../../core/config/constants.dart';
@@ -40,6 +42,15 @@ class AppwriteAuthDataSource implements AuthRemoteDataSource {
         email: email,
         password: password.trim(),
       );
+
+      // 3. Verificar si el correo está confirmado
+      final accountData = await appwriteConfig.account.get();
+      if (!accountData.emailVerification) {
+        // Borramos la sesión para no dejarlo logueado
+        await appwriteConfig.account.deleteSession(sessionId: 'current');
+        throw Exception('Debes confirmar tu correo antes de poder iniciar sesión. Revisa tu bandeja de entrada.');
+      }
+
       return getCurrentUser();
     } on AppwriteException catch (e) {
       throw Exception(e.message ?? 'Error de autenticación');
@@ -69,7 +80,10 @@ class AppwriteAuthDataSource implements AuthRemoteDataSource {
   Future<void> changePassword(String newPassword) async {
     try {
       // 1. Cambiar la clave en Appwrite Auth
-      await appwriteConfig.account.updatePassword(password: newPassword);
+      await appwriteConfig.account.updatePassword(
+        password: newPassword,
+        oldPassword: 'Ecuador2026',
+      );
       
       // 2. Actualizar el flag en la base de datos
       final accountData = await appwriteConfig.account.get();
@@ -102,13 +116,22 @@ class AppwriteAuthDataSource implements AuthRemoteDataSource {
         throw Exception('El usuario no tiene un correo válido registrado para recuperar la contraseña.');
       }
 
-      // Supabase / Appwrite native recovery
-      await appwriteConfig.account.createRecovery(
-        email: email,
-        url: 'https://veedorapp.com/reset-password', // Dummy URL for the flow
-      );
+      // Call to the new mini-backend
+      final response = await http.post(
+        Uri.parse('${AppConstants.backendUrl}/api/auth/send-password-reset'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      ).timeout(const Duration(seconds: 45), onTimeout: () {
+        throw Exception('El servidor está tardando mucho en responder. Por favor, intenta de nuevo en un minuto.');
+      });
+
+      if (response.statusCode != 200) {
+        throw Exception('Error del servidor de correos');
+      }
     } on AppwriteException catch (e) {
       throw Exception(e.message ?? 'Error al enviar correo de recuperación');
+    } catch (e) {
+      throw Exception('Error al enviar correo de recuperación: $e');
     }
   }
 

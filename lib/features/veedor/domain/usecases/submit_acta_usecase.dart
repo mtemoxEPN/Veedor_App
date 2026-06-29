@@ -32,11 +32,10 @@ class SubmitActaUseCase {
         votosCandidato4 < 0 || votosCandidato5 < 0 || votosBlancos < 0 || votosNulos < 0) {
       return Future.value(const Left(ServerFailure('Los votos no pueden ser negativos')));
     }
-    
-    // Validación matemática:
-    final sumaTotal = votosCandidato1 + votosCandidato2 + votosCandidato3 + 
+
+    final sumaTotal = votosCandidato1 + votosCandidato2 + votosCandidato3 +
                       votosCandidato4 + votosCandidato5 + votosBlancos + votosNulos;
-    
+
     if (sumaTotal != totalSufragantes) {
       return Future.value(const Left(ServerFailure('La suma de los votos no coincide con el total de sufragantes.')));
     }
