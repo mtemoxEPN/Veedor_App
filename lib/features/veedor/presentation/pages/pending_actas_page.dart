@@ -33,19 +33,53 @@ class _PendingActasPageState extends State<PendingActasPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Actas Pendientes'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sync),
-            tooltip: 'Sincronizar ahora',
-            onPressed: () {
-              context.read<VeedorBloc>().add(SyncPendingActasEvent());
-            },
-          ),
-        ],
-      ),
-      body: BlocConsumer<VeedorBloc, VeedorState>(
+        backgroundColor: AppTheme.secondary,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8, right: 10, top: 10, bottom: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Actas Pendientes',
+                          style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.sync, color: Colors.white),
+                      tooltip: 'Sincronizar ahora',
+                      onPressed: () {
+                        context.read<VeedorBloc>().add(SyncPendingActasEvent());
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                    child: BlocConsumer<VeedorBloc, VeedorState>(
         listener: (context, state) {
           if (state is VeedorSyncResult) {
             if (state.synced > 0) {
@@ -152,10 +186,16 @@ class _PendingActasPageState extends State<PendingActasPage> {
               ),
             );
           }
-          return const Center(child: Text('Cargando...', style: TextStyle(color: AppTheme.textMuted)));
-        },
-      ),
-    );
+            return const Center(child: Text('Cargando...', style: TextStyle(color: AppTheme.textMuted)));
+          },
+        ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
   }
 
   Widget _buildActaCard(BuildContext context, ActaPendienteEntity acta) {
@@ -185,21 +225,32 @@ class _PendingActasPageState extends State<PendingActasPage> {
         break;
     }
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: AppTheme.cardDecoration(),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.secondary.withValues(alpha: 0.05),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(10),
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 20),
+              child: Icon(icon, color: color, size: 24),
             ),
             const SizedBox(width: 14),
             Expanded(

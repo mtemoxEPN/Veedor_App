@@ -27,7 +27,7 @@ class _CreateMesaPageState extends State<CreateMesaPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Crear Mesa')),
+      backgroundColor: AppTheme.primary,
       body: BlocListener<RecintoBloc, RecintoState>(
         listener: (context, state) {
           if (state is RecintoError) {
@@ -43,60 +43,103 @@ class _CreateMesaPageState extends State<CreateMesaPage> {
             Navigator.of(context).pop();
           }
         },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8, right: 20, top: 10, bottom: 20),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Crear Mesa',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
                   ),
-                  child: const Row(
-                    children: [
-                      Icon(Icons.table_rows, size: 20, color: AppTheme.primary),
-                      SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          'Registre una nueva mesa electoral (JRV) en este recinto.',
-                          style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(32),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+                              ),
+                              child: const Row(
+                                children: [
+                                  Icon(Icons.table_rows, size: 24, color: AppTheme.primary),
+                                  SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      'Registre una nueva mesa electoral (JRV) en este recinto.',
+                                      style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            TextFormField(
+                              controller: _numeroMesaController,
+                              decoration: AppTheme.inputDecoration(label: 'Número o Nombre de la Mesa', prefixIcon: Icons.tag),
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 40),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: _submitting
+                                  ? null
+                                  : () {
+                                      if (_formKey.currentState!.validate()) {
+                                        setState(() => _submitting = true);
+                                        context.read<RecintoBloc>().add(
+                                          CreateMesaEvent(
+                                            numeroMesa: _numeroMesaController.text,
+                                            recintoId: widget.recintoId,
+                                          ),
+                                        );
+                                      }
+                                    },
+                              child: _submitting
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text('Guardar Mesa', style: TextStyle(fontSize: 16)),
+                            ),
+                            const SizedBox(height: 40),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _numeroMesaController,
-                  decoration: AppTheme.inputDecoration(label: 'Número o Nombre de la Mesa', prefixIcon: Icons.tag),
-                  validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _submitting
-                      ? null
-                      : () {
-                          if (_formKey.currentState!.validate()) {
-                            setState(() => _submitting = true);
-                            context.read<RecintoBloc>().add(
-                              CreateMesaEvent(
-                                numeroMesa: _numeroMesaController.text,
-                                recintoId: widget.recintoId,
-                              ),
-                            );
-                          }
-                        },
-                  child: _submitting
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Guardar Mesa'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

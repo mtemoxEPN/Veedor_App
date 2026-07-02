@@ -15,6 +15,7 @@ import '../../../veedor/presentation/bloc/veedor_state.dart';
 import '../../../veedor/presentation/pages/acta_form_page.dart';
 import '../../../provincial/domain/usecases/get_organizaciones_by_dignidad_usecase.dart';
 import '../../../veedor/presentation/pages/pending_actas_page.dart';
+import 'widgets/user_profile_card.dart';
 
 class VeedorDashboard extends StatefulWidget {
   final UserEntity user;
@@ -58,132 +59,200 @@ class _VeedorDashboardState extends State<VeedorDashboard> {
       create: (_) => di.sl<VeedorBloc>()..add(LoadMesasByVeedorEvent(widget.user.id)),
       child: Builder(
         builder: (innerContext) => Scaffold(
-          appBar: AppBar(
-            title: Column(
+          backgroundColor: AppTheme.secondary,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('Veedor de Mesa', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w400, color: AppTheme.textMuted)),
-                Text(widget.user.nombres, style: const TextStyle(fontSize: 17)),
-              ],
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.cloud_sync_outlined),
-                tooltip: 'Actas pendientes',
-                onPressed: () {
-                  Navigator.of(innerContext).push(
-                    MaterialPageRoute(
-                      builder: (navContext) => BlocProvider(
-                        create: (_) => di.sl<VeedorBloc>(),
-                        child: const PendingActasPage(),
+                Padding(
+                  padding: const EdgeInsets.only(left: 20, right: 10, top: 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Panel Veedor',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.cloud_sync_outlined, color: Colors.white),
+                            tooltip: 'Actas pendientes',
+                            onPressed: () {
+                              Navigator.of(innerContext).push(
+                                MaterialPageRoute(
+                                  builder: (navContext) => BlocProvider(
+                                    create: (_) => di.sl<VeedorBloc>(),
+                                    child: const PendingActasPage(),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.logout, color: Colors.white),
+                            tooltip: 'Cerrar sesión',
+                            onPressed: () {
+                              syncService.stopAutoSync();
+                              innerContext.read<AuthBloc>().add(LogoutRequestedEvent());
+                              Navigator.of(innerContext).pushReplacement(
+                                MaterialPageRoute(builder: (_) => const LoginPage()),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                UserProfileCard(user: widget.user),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: Container(
+                    decoration: const BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                      child: BlocBuilder<VeedorBloc, VeedorState>(
+                        builder: (context, state) {
+                          if (state is VeedorLoading) {
+                            return const Center(child: CircularProgressIndicator());
+                          } else if (state is VeedorError) {
+                            return Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.error_outline, size: 56, color: AppTheme.danger.withValues(alpha: 0.7)),
+                                    const SizedBox(height: 16),
+                                    Text(state.message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textSecondary)),
+                                    const SizedBox(height: 20),
+                                    OutlinedButton.icon(
+                                      icon: const Icon(Icons.refresh, size: 18),
+                                      label: const Text('Reintentar'),
+                                      onPressed: () => context.read<VeedorBloc>().add(LoadMesasByVeedorEvent(widget.user.id)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          } else if (state is VeedorMesasListLoaded) {
+                            final mesas = state.mesas;
+                            if (mesas.isEmpty) {
+                              return RefreshIndicator(
+                                color: AppTheme.primary,
+                                onRefresh: () async {
+                                  context.read<VeedorBloc>().add(LoadMesasByVeedorEvent(widget.user.id));
+                                  await Future<void>.delayed(const Duration(milliseconds: 400));
+                                },
+                                child: ListView(
+                                  physics: const AlwaysScrollableScrollPhysics(),
+                                  padding: const EdgeInsets.only(top: 60),
+                                  children: [
+                                    Icon(Icons.how_to_vote_outlined, size: 80, color: AppTheme.textMuted.withValues(alpha: 0.3)),
+                                    const SizedBox(height: 24),
+                                    const Text(
+                                      'No tienes mesas asignadas',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.textSecondary),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                            return RefreshIndicator(
+                              color: AppTheme.primary,
+                              onRefresh: () async {
+                                context.read<VeedorBloc>().add(LoadMesasByVeedorEvent(widget.user.id));
+                                await Future<void>.delayed(const Duration(milliseconds: 400));
+                              },
+                              child: ListView.builder(
+                                padding: const EdgeInsets.only(top: 24, bottom: 80),
+                                itemCount: mesas.length + 1,
+                                itemBuilder: (context, index) {
+                                  if (index == 0) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 24, bottom: 16, right: 24),
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.assignment_ind, color: AppTheme.secondary),
+                                          const SizedBox(width: 8),
+                                          const Text(
+                                            'Mis Mesas Asignadas',
+                                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.secondary),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppTheme.surfaceMuted,
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Text('${mesas.length}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                  final mesa = mesas[index - 1];
+                                  return _buildMesaExpansion(context, mesa);
+                                },
+                              ),
+                            );
+                          }
+                          return const Center(child: Text('Cargando mesas...', style: TextStyle(color: AppTheme.textMuted)));
+                        },
                       ),
                     ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout),
-                tooltip: 'Cerrar sesión',
-                onPressed: () {
-                  syncService.stopAutoSync();
-                  innerContext.read<AuthBloc>().add(LogoutRequestedEvent());
-                  Navigator.of(innerContext).pushReplacement(
-                    MaterialPageRoute(builder: (_) => const LoginPage()),
-                  );
-                },
-              ),
-            ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        body: BlocBuilder<VeedorBloc, VeedorState>(
-          builder: (context, state) {
-            if (state is VeedorLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is VeedorError) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.error_outline, size: 56, color: AppTheme.danger.withValues(alpha: 0.7)),
-                      const SizedBox(height: 16),
-                      Text(state.message, textAlign: TextAlign.center, style: const TextStyle(color: AppTheme.textSecondary)),
-                      const SizedBox(height: 20),
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.refresh, size: 18),
-                        label: const Text('Reintentar'),
-                        onPressed: () => context.read<VeedorBloc>().add(LoadMesasByVeedorEvent(widget.user.id)),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            } else if (state is VeedorMesasListLoaded) {
-              final mesas = state.mesas;
-              if (mesas.isEmpty) {
-                return RefreshIndicator(
-                  onRefresh: () async {
-                    context.read<VeedorBloc>().add(LoadMesasByVeedorEvent(widget.user.id));
-                    await Future<void>.delayed(const Duration(milliseconds: 400));
-                  },
-                  child: ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: [
-                      const SizedBox(height: 100),
-                      Icon(Icons.how_to_vote_outlined, size: 64, color: AppTheme.textMuted.withValues(alpha: 0.5)),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'No tienes mesas asignadas',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: AppTheme.textSecondary),
-                      ),
-                    ],
-                  ),
-                );
-              }
-              return RefreshIndicator(
-                color: AppTheme.primary,
-                onRefresh: () async {
-                  context.read<VeedorBloc>().add(LoadMesasByVeedorEvent(widget.user.id));
-                  await Future<void>.delayed(const Duration(milliseconds: 400));
-                },
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  itemCount: mesas.length,
-                  itemBuilder: (context, index) {
-                    final mesa = mesas[index];
-                    return _buildMesaExpansion(context, mesa);
-                  },
-                ),
-              );
-            }
-            return const Center(child: Text('Cargando tus mesas...', style: TextStyle(color: AppTheme.textMuted)));
-          },
         ),
-      ),
       ),
     );
   }
 
   Widget _buildMesaExpansion(BuildContext context, dynamic mesa) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: AppTheme.cardDecoration(),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.secondary.withValues(alpha: 0.05),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
           leading: Container(
-            width: 40,
-            height: 40,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(10),
+              color: AppTheme.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.how_to_vote, size: 20, color: AppTheme.primary),
+            child: const Icon(Icons.how_to_vote, size: 24, color: AppTheme.primary),
           ),
           title: Text(
             'Mesa ${mesa.numeroMesa}',
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppTheme.textPrimary),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.secondary),
           ),
           subtitle: const Text(
             'Seleccione el acta a registrar',
@@ -191,14 +260,14 @@ class _VeedorDashboardState extends State<VeedorDashboard> {
           ),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
+                  const Divider(height: 1, color: AppTheme.surfaceMuted),
+                  const SizedBox(height: 16),
                   _buildActaButton(context, 'Alcalde', mesa.id, mesa.recintoId, Icons.location_city),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   _buildActaButton(context, 'Prefecto', mesa.id, mesa.recintoId, Icons.account_balance),
                 ],
               ),

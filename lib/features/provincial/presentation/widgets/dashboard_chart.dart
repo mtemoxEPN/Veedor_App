@@ -38,13 +38,22 @@ class DashboardChart extends StatelessWidget {
                   Row(
                     children: [
                       if (v.logoUrl != null && v.logoUrl!.isNotEmpty)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Image.network(v.logoUrl!, width: 24, height: 24, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildColorDot(color)),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.outlineVariantSolid.withValues(alpha: 0.5), width: 1),
+                            color: AppTheme.surfaceContainerHigh.withValues(alpha: 0.3),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(7),
+                            child: Image.network(v.logoUrl!, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _buildColorDot(color)),
+                          ),
                         )
                       else
                         _buildColorDot(color),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 14),
                       Expanded(
                         child: Text(
                           v.candidatoNombre,

@@ -38,7 +38,7 @@ class _CreateCoordinadorPageState extends State<CreateCoordinadorPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Asignar a: ${widget.nombreRecinto}')),
+      backgroundColor: AppTheme.secondary,
       body: BlocListener<ProvincialBloc, ProvincialState>(
         listener: (context, state) {
           if (state is ProvincialError) {
@@ -54,105 +54,164 @@ class _CreateCoordinadorPageState extends State<CreateCoordinadorPage> {
             Navigator.of(context).pop();
           }
         },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primary.withOpacity(0.05),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8, right: 20, top: 10, bottom: 20),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Icon(Icons.info_outline, size: 18, color: AppTheme.primary),
-                          SizedBox(width: 8),
-                          Text('Información', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primary)),
+                          const Text(
+                            'Asignar Coordinador',
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            widget.nombreRecinto,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white.withValues(alpha: 0.8),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ],
                       ),
-                      SizedBox(height: 6),
-                      Text(
-                        'Se creará la cuenta con la clave "Ecuador2026" y se enviará un correo de confirmación.',
-                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(32),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+                              ),
+                              child: const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(Icons.info_outline, size: 20, color: AppTheme.primary),
+                                      SizedBox(width: 8),
+                                      Text('Información', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppTheme.primary)),
+                                    ],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'Se creará la cuenta con la clave "Ecuador2026" y se enviará un correo de confirmación.',
+                                    style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            TextFormField(
+                              controller: _cedulaController,
+                              decoration: AppTheme.inputDecoration(label: 'Cédula (10 dígitos)', prefixIcon: Icons.badge_outlined),
+                              keyboardType: TextInputType.number,
+                              maxLength: 10,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'Requerido';
+                                if (!CedulaValidator.isValid(v)) return CedulaValidator.formatMessage();
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 20),
+                            TextFormField(
+                              controller: _nombresController,
+                              decoration: AppTheme.inputDecoration(label: 'Nombres', prefixIcon: Icons.person_outline),
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            TextFormField(
+                              controller: _apellidosController,
+                              decoration: AppTheme.inputDecoration(label: 'Apellidos', prefixIcon: Icons.person_outline),
+                              validator: (v) => v!.isEmpty ? 'Requerido' : null,
+                            ),
+                            const SizedBox(height: 20),
+                            TextFormField(
+                              controller: _telefonoController,
+                              decoration: AppTheme.inputDecoration(label: 'Teléfono', prefixIcon: Icons.phone_outlined),
+                              keyboardType: TextInputType.phone,
+                            ),
+                            const SizedBox(height: 20),
+                            TextFormField(
+                              controller: _correoController,
+                              decoration: AppTheme.inputDecoration(label: 'Correo Electrónico', prefixIcon: Icons.email_outlined),
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (v) {
+                                if (v == null || v.isEmpty) return 'Requerido';
+                                final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
+                                if (!emailRegex.hasMatch(v)) return 'Correo inválido';
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 40),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: _submitting
+                                  ? null
+                                  : () {
+                                      if (_formKey.currentState!.validate()) {
+                                        setState(() => _submitting = true);
+                                        context.read<ProvincialBloc>().add(
+                                          CreateCoordinadorRecintoEvent(
+                                            cedula: _cedulaController.text,
+                                            nombres: _nombresController.text,
+                                            apellidos: _apellidosController.text,
+                                            telefono: _telefonoController.text,
+                                            correo: _correoController.text,
+                                            recintoId: widget.recintoId,
+                                          ),
+                                        );
+                                      }
+                                    },
+                              child: _submitting
+                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : const Text('Crear y Asignar Coordinador', style: TextStyle(fontSize: 16)),
+                            ),
+                            const SizedBox(height: 40),
+                          ],
+                        ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                TextFormField(
-                  controller: _cedulaController,
-                  decoration: AppTheme.inputDecoration(label: 'Cédula (10 dígitos)', prefixIcon: Icons.badge_outlined),
-                  keyboardType: TextInputType.number,
-                  maxLength: 10,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Requerido';
-                    if (!CedulaValidator.isValid(v)) return CedulaValidator.formatMessage();
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _nombresController,
-                  decoration: AppTheme.inputDecoration(label: 'Nombres', prefixIcon: Icons.person_outline),
-                  validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _apellidosController,
-                  decoration: AppTheme.inputDecoration(label: 'Apellidos', prefixIcon: Icons.person_outline),
-                  validator: (v) => v!.isEmpty ? 'Requerido' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _telefonoController,
-                  decoration: AppTheme.inputDecoration(label: 'Teléfono', prefixIcon: Icons.phone_outlined),
-                  keyboardType: TextInputType.phone,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _correoController,
-                  decoration: AppTheme.inputDecoration(label: 'Correo Electrónico', prefixIcon: Icons.email_outlined),
-                  keyboardType: TextInputType.emailAddress,
-                  validator: (v) {
-                    if (v == null || v.isEmpty) return 'Requerido';
-                    final emailRegex = RegExp(r'^[\w\.\-]+@([\w\-]+\.)+[\w\-]{2,4}$');
-                    if (!emailRegex.hasMatch(v)) return 'Correo inválido';
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                ElevatedButton(
-                  onPressed: _submitting
-                      ? null
-                      : () {
-                          if (_formKey.currentState!.validate()) {
-                            setState(() => _submitting = true);
-                            context.read<ProvincialBloc>().add(
-                              CreateCoordinadorRecintoEvent(
-                                cedula: _cedulaController.text,
-                                nombres: _nombresController.text,
-                                apellidos: _apellidosController.text,
-                                telefono: _telefonoController.text,
-                                correo: _correoController.text,
-                                recintoId: widget.recintoId,
-                              ),
-                            );
-                          }
-                        },
-                  child: _submitting
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                      : const Text('Crear y Asignar Coordinador'),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

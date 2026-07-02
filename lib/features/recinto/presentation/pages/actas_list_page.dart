@@ -25,25 +25,59 @@ class ActasListPage extends StatelessWidget {
     return BlocProvider(
       create: (_) => di.sl<VeedorBloc>()..add(LoadActasByMesaEvent(mesaId)),
       child: Scaffold(
-        appBar: AppBar(
-          title: Text('Actas · Mesa $numeroMesa'),
-          actions: [
-            IconButton(
-              tooltip: 'Recargar',
-              icon: const Icon(Icons.refresh),
-              onPressed: () => context.read<VeedorBloc>().add(LoadActasByMesaEvent(mesaId)),
-            ),
-          ],
-        ),
-        body: BlocBuilder<VeedorBloc, VeedorState>(
-          builder: (context, state) {
-            if (state is VeedorLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (state is VeedorError) {
-              return _buildError(context, state.message);
-            }
-            if (state is VeedorActasListLoaded) {
+        backgroundColor: AppTheme.primary,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(left: 8, right: 10, top: 10, bottom: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Actas · Mesa $numeroMesa',
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                    IconButton(
+                      tooltip: 'Recargar',
+                      icon: const Icon(Icons.refresh, color: Colors.white),
+                      onPressed: () => context.read<VeedorBloc>().add(LoadActasByMesaEvent(mesaId)),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                    child: BlocBuilder<VeedorBloc, VeedorState>(
+                      builder: (context, state) {
+                        if (state is VeedorLoading) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        if (state is VeedorError) {
+                          return _buildError(context, state.message);
+                        }
+                        if (state is VeedorActasListLoaded) {
               return RefreshIndicator(
                 color: AppTheme.primary,
                 onRefresh: () async {
@@ -93,8 +127,14 @@ class ActasListPage extends StatelessWidget {
                 ),
               );
             }
-            return const Center(child: Text('Cargando...', style: TextStyle(color: AppTheme.textMuted)));
-          },
+                        return const Center(child: Text('Cargando...', style: TextStyle(color: AppTheme.textMuted)));
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -261,7 +301,43 @@ class ActasListPage extends StatelessWidget {
               if (isSubida) ...[
                 const SizedBox(height: 16),
                 const Divider(height: 1),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
+                if (acta.fotoUrl.isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: Image.network(
+                      acta.fotoUrl,
+                      width: double.infinity,
+                      height: 180,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          height: 180,
+                          width: double.infinity,
+                          color: AppTheme.surfaceMuted,
+                          child: const Center(child: CircularProgressIndicator()),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          height: 180,
+                          width: double.infinity,
+                          color: AppTheme.surfaceMuted,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.broken_image, size: 40, color: AppTheme.textMuted.withValues(alpha: 0.5)),
+                              const SizedBox(height: 8),
+                              const Text('Imagen no disponible', style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 _buildInfoRow(Icons.how_to_vote, 'Sufragantes: ${acta.totalSufragantes}'),
                 _buildInfoRow(Icons.ballot_outlined,
                     'Candidatos: ${acta.votosCandidato1 + acta.votosCandidato2 + acta.votosCandidato3 + acta.votosCandidato4 + acta.votosCandidato5}'),

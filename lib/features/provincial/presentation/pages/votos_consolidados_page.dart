@@ -31,6 +31,9 @@ class _VotosConsolidadosPageState extends State<VotosConsolidadosPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    if (widget.user.rol == AppConstants.rolRecinto || widget.user.rol == 'coordinador_recinto') {
+      _selectedRecintoId = widget.user.recintoId;
+    }
     _setupRealtime();
   }
 
@@ -86,48 +89,92 @@ class _VotosConsolidadosPageState extends State<VotosConsolidadosPage>
       child: Builder(
         builder: (context) {
           return Scaffold(
-            appBar: AppBar(
-              title: const Text('Dashboard de Votos', style: TextStyle(fontWeight: FontWeight.w700)),
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () => _loadData(context),
-                  tooltip: 'Actualizar',
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16.0),
-                  child: CircleAvatar(
-                    backgroundColor: AppTheme.surfaceContainerHigh,
-                    child: Icon(Icons.person, color: AppTheme.secondary),
+            backgroundColor: AppTheme.primary,
+            body: SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8, right: 20, top: 10, bottom: 10),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Votos',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Row(
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.refresh, color: Colors.white),
+                              onPressed: () => _loadData(context),
+                              tooltip: 'Actualizar',
+                            ),
+                            const CircleAvatar(
+                              backgroundColor: Colors.white24,
+                              radius: 16,
+                              child: Icon(Icons.person, color: Colors.white, size: 20),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-              bottom: TabBar(
-                controller: _tabController,
-                onTap: (_) => _loadData(context),
-                indicatorColor: AppTheme.primaryContainer,
-                indicatorWeight: 4,
-                labelColor: AppTheme.onSurface,
-                unselectedLabelColor: AppTheme.onSurfaceVariant,
-                tabs: const [
-                  Tab(icon: Icon(Icons.location_city, size: 18), text: 'ALCALDES'),
-                  Tab(icon: Icon(Icons.account_balance, size: 18), text: 'PREFECTOS'),
+                  TabBar(
+                    controller: _tabController,
+                    onTap: (_) => _loadData(context),
+                    indicatorColor: Colors.white,
+                    indicatorWeight: 4,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    dividerColor: Colors.transparent,
+                    tabs: const [
+                      Tab(icon: Icon(Icons.location_city, size: 18), text: 'ALCALDES'),
+                      Tab(icon: Icon(Icons.account_balance, size: 18), text: 'PREFECTOS'),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Expanded(
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(36)),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(36)),
+                        child: BlocBuilder<ProvincialBloc, ProvincialState>(
+                          builder: (context, state) {
+                            if (state is ProvincialLoading) {
+                              return const Center(child: CircularProgressIndicator());
+                            }
+                            if (state is ProvincialError) {
+                              return _buildError(context, state.message);
+                            }
+                            if (state is ProvincialVotosConsolidadosLoaded) {
+                              return _buildContent(context, state);
+                            }
+                            return const Center(child: Text('Seleccione una opción', style: TextStyle(color: AppTheme.textMuted)));
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
-            body: BlocBuilder<ProvincialBloc, ProvincialState>(
-              builder: (context, state) {
-                if (state is ProvincialLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (state is ProvincialError) {
-                  return _buildError(context, state.message);
-                }
-                if (state is ProvincialVotosConsolidadosLoaded) {
-                  return _buildContent(context, state);
-                }
-                return const Center(child: Text('Seleccione una opción', style: TextStyle(color: AppTheme.onSurfaceVariant)));
-              },
             ),
           );
         },
